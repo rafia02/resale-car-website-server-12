@@ -167,20 +167,20 @@ async function run(){
 
 
 
-        //   app.put('/users/:id', async(req, res)=>{
-        //     const id = req.params.id 
-        //     const filter = {_id: ObjectId(id)}
-        //     const options = { upsert: true };
-        //     const updatedDoc = {
-        //         $set: {
-        //           role: 'admin'
-        //         }
-        //       }
+          app.put('/users/:id', async(req, res)=>{
+            const id = req.params.id 
+            const filter = {_id: ObjectId(id)}
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    status: 'verfied'
+                }
+              }
 
-        //       const result = await usersCollection.updateOne(filter, updatedDoc, options)
-        //       res.send(result)
+              const result = await usersCollection.updateOne(filter, updatedDoc, options)
+              res.send(result)
             
-        //   })
+          })
 
 
 
