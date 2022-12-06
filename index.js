@@ -3,6 +3,8 @@ const cors = require('cors');
 const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 5000
+const stripe = require("stripe")(process.env.STRIPE_SK_KEY);
+
 
 app.use(cors())
 app.use(express.json())
@@ -21,8 +23,9 @@ async function run(){
         const productsCollection = client.db('resaleCar').collection('products')
         const bookingsCollection = client.db('resaleCar').collection('bookings')
         const usersCollection = client.db('resaleCar').collection('users')
-        const addproductsCollection = client.db('resaleCar').collection('addproducts')
+        // const addproductsCollection = client.db('resaleCar').collection('addproducts')
         const advertiseCollection = client.db('resaleCar').collection('advertise')
+        const paymentCollection = client.db('resaleCar').collection('payment')
 
 
         app.get('/catagories', async(req, res)=>{
@@ -32,11 +35,11 @@ async function run(){
         })
 
 
-        app.get('/products', async(req, res)=>{
-            const query = {}
-            const result = await productsCollection.find(query).toArray()
-            res.send(result)
-        })
+        // app.get('/products', async(req, res)=>{
+        //     const query = {}
+        //     const result = await productsCollection.find(query).toArray()
+        //     res.send(result)
+        // })
 
 
         app.get('/products/:id', async(req, res)=>{
@@ -45,6 +48,21 @@ async function run(){
             const result = await productsCollection.find(query).toArray()
             res.send(result)
         })
+
+
+        
+
+       app.get('/products', async(req, res)=>{
+        const email = req.query.email
+        console.log(email) 
+
+        const filter = {email: email}
+        const result = await productsCollection.find(filter).toArray()
+        res.send(result)
+       })
+
+
+
 
 
 
@@ -67,29 +85,29 @@ async function run(){
 
 
 
-        app.post('/addproducts', async(req, res)=>{
-            const product = req.body
+        // app.post('/addproducts', async(req, res)=>{
+        //     const product = req.body
             
-            const result = await addproductsCollection.insertOne(product)
-            res.send(result)
-        })
+        //     const result = await addproductsCollection.insertOne(product)
+        //     res.send(result)
+        // })
 
 
 
 
-        app.get('/addproducts', async(req, res)=>{
-            const email = req.query.email
-            const filter = {email: email}
-            const result = await addproductsCollection.find(filter).toArray()
-            res.send(result)
-        })
+        // app.get('/addproducts', async(req, res)=>{
+        //     const email = req.query.email
+        //     const filter = {email: email}
+        //     const result = await addproductsCollection.find(filter).toArray()
+        //     res.send(result)
+        // })
 
 
 
-        app.delete('/addproducts/:id', async(req, res)=>{
+        app.delete('/products/:id', async(req, res)=>{
             const id = req.params.id 
             const query = {_id: ObjectId(id)}
-            const result = await addproductsCollection.deleteOne(query)
+            const result = await productsCollection.deleteOne(query)
             res.send(result)
         })
 
@@ -123,9 +141,56 @@ async function run(){
         })
 
 
+        app.get('/bookings/:id', async(req, res)=>{
+            const id = req.params.id 
+            const query = {_id: ObjectId(id)}
+            const result = await bookingsCollection.findOne(query)
+            res.send(result)
+        })
 
 
-        // mora kora ata kora lagba
+
+        app.post('/payment', async(req, res) =>{
+            const pay = req.body 
+            
+            const result = await paymentCollection.insertOne(pay)
+            const id = pay.bookingId 
+            
+            const filter = {_id: ObjectId(id)}
+            const options = { upsert: true };
+            const updatedDoc = {
+                    $set: {
+                        status: 'paid'
+                    }
+                }
+            const updteBooking = await bookingsCollection.updateOne(filter, updatedDoc, options)
+            
+            res.send(result)
+        })
+
+        // app.post('/booking/:id', async(req, res)=>{
+        //     const id = req.params.id 
+        //     const payment = await paymentCollection.find({}).toArray()
+        //     const paymentOne = payment.find(pay => pay.bookingId === id)
+            
+        //     if(paymentOne.length){
+        //         const filter = {_id: ObjectId(id)}
+        //         const options = { upsert: true };
+        //         const updatedDoc = {
+        //             $set: {
+        //                 status: 'paid'
+        //             }
+        //         }
+        //         const result = await bookingsCollection.updateOne(filter, updatedDoc, options)
+        //         res.send(result)
+
+        //     }
+        // })
+
+
+
+
+ 
 
         app.get('/users/seller', async(req, res)=>{
             const query = {}
@@ -229,6 +294,26 @@ async function run(){
             const result = await advertiseCollection.find(query).toArray()
             res.send(result)
             
+          })
+
+
+
+          app.post('/create-payment-intent', async(req, res)=>{
+            const booking = req.body 
+            const price = booking.price 
+            const amount = price * 100
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                "payment_method_types": [
+                    "card"
+                  ],
+            })
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+              });
           })
 
         
